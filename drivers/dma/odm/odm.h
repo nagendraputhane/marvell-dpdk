@@ -71,6 +71,8 @@ extern int odm_logtype;
 	rte_log(RTE_LOG_ERR, odm_logtype, "%s(): %u " fmt "\n", __func__, __LINE__, ##args)
 #define odm_info(fmt, args...)                                                                     \
 	rte_log(RTE_LOG_INFO, odm_logtype, "%s(): %u " fmt "\n", __func__, __LINE__, ##args)
+#define odm_debug(fmt, args...)                                                                    \
+	rte_log(RTE_LOG_DEBUG, odm_logtype, "%s(): %u " fmt "\n", __func__, __LINE__, ##args)
 
 #define ODM_MEMZONE_FLAGS                                                                          \
 	(RTE_MEMZONE_1GB | RTE_MEMZONE_16MB | RTE_MEMZONE_16GB | RTE_MEMZONE_256MB |               \
