@@ -3,6 +3,7 @@
  */
 
 #include <cnxk_eswitch.h>
+#include <cnxk_rep.h>
 
 #define CNXK_NIX_DEF_SQ_COUNT 512
 
@@ -45,6 +46,14 @@ cnxk_eswitch_dev_remove(struct rte_pci_device *pci_dev)
 		return 0;
 
 	eswitch_dev = cnxk_eswitch_pmd_priv();
+	if (!eswitch_dev) {
+		rc = -EINVAL;
+		goto exit;
+	}
+
+	/* Remove representor devices associated with PF */
+	if (eswitch_dev->repr_cnt.nb_repr_created)
+		cnxk_rep_dev_remove(eswitch_dev);
 
 	eswitch_hw_rsrc_cleanup(eswitch_dev);
 	/* Check if this device is hosting common resource */
@@ -653,6 +662,13 @@ cnxk_eswitch_dev_probe(struct rte_pci_driver *pci_drv, struct rte_pci_device *pc
 	plt_esw_dbg("Max no of reps %d reps to be created %d Eswtch pfunc %x",
 		    eswitch_dev->repr_cnt.max_repr, eswitch_dev->repr_cnt.nb_repr_created,
 		    roc_nix_get_pf_func(&eswitch_dev->nix));
+
+	/* Probe representor ports */
+	rc = cnxk_rep_dev_probe(pci_dev, eswitch_dev);
+	if (rc) {
+		plt_err("Failed to probe representor ports");
+		goto rsrc_cleanup;
+	}
 
 	/* Spinlock for synchronization between representors traffic and control
 	 * messages
