@@ -665,6 +665,8 @@ main(int argc, char *argv[])
 			printf("Fork case %d failed.\n", i + 1);
 			exit(EXIT_FAILURE);
 		} else if (cpid == 0) {
+			uint32_t mcore_id, lcore_id;
+
 			printf("\nRunning case %u\n\n", i + 1);
 
 			new_argc = append_eal_args(argc, argv, test_cases[i].eal_args, pargs);
@@ -677,6 +679,22 @@ main(int argc, char *argv[])
 			if (nb_lcores < 2)
 				rte_exit(EXIT_FAILURE,
 					"There should be at least 2 worker lcores.\n");
+
+			mcore_id = rte_get_main_lcore();
+			for (int j = 0; j < test_cases[i].lcore_dma_map.cnt; j++) {
+				lcore_id = test_cases[i].lcore_dma_map.lcores[j];
+				if (lcore_id == mcore_id) {
+					printf("Case %d error, lcore parameters can not use main core id %d\n",
+						   i + 1, mcore_id);
+					return 0;
+				}
+
+				if (rte_eal_lcore_role(lcore_id) == ROLE_OFF) {
+					printf("Case %d error, lcore parameters can not use offline core id %d\n",
+					       i + 1, lcore_id);
+					return 0;
+				}
+			}
 
 			fd = fopen(rst_path_ptr, "a");
 			if (!fd) {
