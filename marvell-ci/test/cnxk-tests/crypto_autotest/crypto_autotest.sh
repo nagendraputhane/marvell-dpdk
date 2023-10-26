@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 CNXK_MEMPOOL_DEVICE=$(lspci -d :a0fb | tail -1 | awk -e '{ print $1 }')
+CNXK_EAL_VDEV_OPENSSL="--vdev crypto_openssl"
 
 CN10K_CRYPTO_DEVICE="0002:20:00.1"
 CN10K_EAL_ARGS="-a $CN10K_CRYPTO_DEVICE,max_qps_limit=4 -a $CNXK_MEMPOOL_DEVICE"
@@ -33,11 +34,13 @@ fi
 run_cn10k_crypto_autotest() {
 	DPDK_TEST=cryptodev_cn10k_autotest $DPDK_TEST_BIN $CN10K_EAL_ARGS
 	DPDK_TEST=cryptodev_cn10k_asym_autotest $DPDK_TEST_BIN $CN10K_EAL_ARGS
+	DPDK_TEST=cryptodev_crosscheck $DPDK_TEST_BIN $CN10K_EAL_ARGS $CNXK_EAL_VDEV_OPENSSL
 }
 
 run_cn9k_crypto_autotest() {
 	DPDK_TEST=cryptodev_cn9k_autotest $DPDK_TEST_BIN $CN9K_EAL_ARGS
 	DPDK_TEST=cryptodev_cn9k_asym_autotest $DPDK_TEST_BIN $CN9K_EAL_ARGS
+	DPDK_TEST=cryptodev_crosscheck $DPDK_TEST_BIN $CN9K_EAL_ARGS $CNXK_EAL_VDEV_OPENSSL
 }
 
 run_crypto_autotest() {
