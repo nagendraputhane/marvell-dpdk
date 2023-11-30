@@ -18,7 +18,7 @@ extbuf_test=executable(
     test_exec,
     files('main.c'),
     link_whole: link_libs,
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     c_args: cflags,
     install_dir: 'bin/cnxk/udp4-recv',
     install: true

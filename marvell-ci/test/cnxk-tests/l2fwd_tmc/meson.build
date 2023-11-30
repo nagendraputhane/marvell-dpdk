@@ -23,14 +23,14 @@ if get_option('default_library') == 'static'
     link_whole_libs = dpdk_static_libraries + dpdk_drivers
 endif
 
-test_dep_objs += tmc_dep
+cnxk_test_dep_objs += tmc_dep
 # Create the test executable
 l2fwd_tmc_test=executable(
     test_exec,
     files('main.c', 'l2fwd_common.c', 'l2fwd_event.c', 'l2fwd_event_generic.c',
           'l2fwd_event_internal_port.c', 'l2fwd_poll.c'),
     link_whole: link_whole_libs,
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     link_args: extra_ldflags,
     c_args: cflags,
     install_dir: 'bin/cnxk/l2fwd_tmc',

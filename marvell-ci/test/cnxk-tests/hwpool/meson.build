@@ -15,7 +15,7 @@ extbuf_test=executable(
     test_exec,
     files('hwpool.c'),
     link_whole: link_libs,
-    dependencies:[test_dep_objs, get_variable(def_lib + '_rte_mempool_cnxk')],
+    dependencies:[cnxk_test_dep_objs, get_variable(def_lib + '_rte_mempool_cnxk')],
     c_args: cflags,
     install_dir: 'bin/cnxk/hwpool',
     install: true

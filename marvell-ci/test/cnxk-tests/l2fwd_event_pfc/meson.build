@@ -18,7 +18,7 @@ l2fwd_event_pfc_test=executable(
           'l2fwd_event_generic.c', 'l2fwd_event_internal_port.c',
           'l2fwd_poll.c'),
     link_whole: link_libs,
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     c_args: cflags,
     install_dir: 'bin/cnxk/l2fwd_event_pfc',
     install: true,

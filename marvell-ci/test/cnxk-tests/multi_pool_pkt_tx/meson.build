@@ -21,7 +21,7 @@ multi_pool_pkt_tx_test=executable(
     test_exec,
     files('multi_pool_pkt_tx.c'),
     link_whole: link_libs,
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     c_args: cflags,
     install_dir: test_install_dir,
     install: true

@@ -6,12 +6,11 @@ if not get_option('tests')
 endif
 
 # This executable is used as a workaround to make sure that the exe_wrapper gets
-# called for scripts also. In the exe_wrapper, this executable is ignored. Note
-# that the test_dep_objs is inherited from app/test/meson.build.
+# called for scripts also. In the exe_wrapper, this executable is ignored.
 cnxk_test_script_wrapper = executable(
     'cnxk-test-script-wrapper',
     files('cnxk_test_script_wrapper.c'),
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     install: false)
 
 # Helper command to copy files to build dir
@@ -29,7 +28,7 @@ dpdk_test_sources += files('../../../../app/test/test_pdump.c')
 dpdk_test_sources += files('../../../../app/test/sample_packet_forward.c')
 dpdk_test_inc_dir = include_directories('../../../../app/test')
 dpdk_test_link = dpdk_static_libraries + dpdk_drivers
-dpdk_test_deps = test_dep_objs + ext_deps
+dpdk_test_deps = cnxk_test_dep_objs + ext_deps
 
 subdir('scapy')
 subdir('pcap')

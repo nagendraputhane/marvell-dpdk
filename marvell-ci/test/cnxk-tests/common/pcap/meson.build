@@ -8,21 +8,21 @@ endif
 executable(
     'pcap-pkt-cnt',
     files('pcap_pkt_cnt.c'),
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     install: true,
     install_dir : 'bin/cnxk/common/pcap')
 
 executable(
     'pcap-len',
     files('pcap_len.c'),
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     install: true,
     install_dir : 'bin/cnxk/common/pcap')
 
 executable(
     'pcap-mac',
     files('pcap_mac.c'),
-    dependencies: test_dep_objs,
+    dependencies: cnxk_test_dep_objs,
     install: true,
     install_dir : 'bin/cnxk/common/pcap')
 

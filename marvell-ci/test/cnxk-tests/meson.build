@@ -5,6 +5,23 @@ if not get_option('tests')
     subdir_done()
 endif
 
+cnxk_test_deps = [
+        'cmdline',
+        'eventdev',
+        'graph',
+        'ipsec',
+        'net_ring',
+        'node',
+        'pdump',
+        'rawdev',
+]
+
+cnxk_test_dep_objs = []
+cnxk_def_lib = get_option('default_library')
+foreach d : cnxk_test_deps
+    cnxk_test_dep_objs += get_variable(cnxk_def_lib + '_rte_' + d)
+endforeach
+
 subdir('common')
 
 # The developer is expected to add new scripts in subdirectories and add it to

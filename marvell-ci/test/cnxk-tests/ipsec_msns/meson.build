@@ -25,7 +25,7 @@ ipsec_msns_test=executable(
     files('ipsec_msns.c'),
     link_whole: link_libs,
     include_directories: includes,
-    dependencies: [test_dep_objs, get_variable(def_lib + '_rte_net_cnxk')],
+    dependencies: [cnxk_test_dep_objs, get_variable(def_lib + '_rte_net_cnxk')],
     c_args: cflags,
     install_dir: 'bin/cnxk/ipsec_msns',
     install: true
