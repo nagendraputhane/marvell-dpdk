@@ -81,6 +81,8 @@ function setup_hp() {
 function setup_devices() {
 	local npa_pf
 	local sso_pf
+	local dma_pf
+	local dma_vf
 	local cpt_pf=""
 	local cpt_vf=""
 	local inl_pf
@@ -120,6 +122,15 @@ function setup_devices() {
 	npa_pf=${NPA_DEV:-$(lspci -d :a0fb | tail -1 | awk -e '{ print $1 }')}
 	devs+=" $sso_pf"
 	devs+=" $npa_pf"
+
+	# DMA device
+	dma_pf=$(lspci -d :a080 | tail -1 | awk -e '{ print $1 }')
+	if [[ -e /sys/bus/pci/devices/$dma_pf/sriov_numvfs ]]; then
+		echo 0 > /sys/bus/pci/devices/$dma_pf/sriov_numvfs
+		echo 1 > /sys/bus/pci/devices/$dma_pf/sriov_numvfs
+		dma_vf=$(lspci -d :a081 | tail -1 | awk -e '{ print $1 }')
+		devs+=" $dma_vf"
+	fi
 
 	if [[ $CPU == "cn10ka" ]]; then
 		inl_pf=${INL_DEV:-$(lspci -d :a0f0 | tail -1 | awk -e '{ print $1 }')}
