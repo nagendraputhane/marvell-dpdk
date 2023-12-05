@@ -60,6 +60,11 @@ cnxk_ep_recv_pkts_avx(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t budget
 #endif
 #endif
 
+#ifdef RTE_ARCH_ARM64
+uint16_t
+cnxk_ep_recv_pkts_neon(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
+#endif
+
 uint16_t
 cnxk_ep_recv_pkts_mseg(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t budget);
 
@@ -74,6 +79,12 @@ cn9k_ep_recv_pkts_sse(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t budget
 uint16_t
 cn9k_ep_recv_pkts_avx(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t budget);
 #endif
+#endif
+
+
+#ifdef RTE_ARCH_ARM64
+uint16_t
+cn9k_ep_recv_pkts_neon(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
 #endif
 
 uint16_t
