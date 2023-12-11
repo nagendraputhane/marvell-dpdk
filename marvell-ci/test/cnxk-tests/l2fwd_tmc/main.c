@@ -541,7 +541,7 @@ print_stats(struct l2fwd_resources *rsrc)
 	fflush(stdout);
 }
 
-static void *
+static uint32_t
 l2fwd_event_print_stats(void *args)
 {
 	uint64_t prev_tsc = 0, diff_tsc, cur_tsc, timer_tsc = 0;
@@ -567,7 +567,7 @@ l2fwd_event_print_stats(void *args)
 		}
 	}
 
-	return NULL;
+	return 0;
 }
 
 static void
@@ -588,7 +588,7 @@ main(int argc, char **argv)
 	uint16_t nb_ports_available = 0;
 	uint32_t nb_ports_in_mask = 0;
 	uint16_t port_id, last_port;
-	pthread_t stats_thread;
+	rte_thread_t stats_thread;
 	uint32_t nb_mbufs;
 	uint16_t nb_ports;
 	int i, ret;
@@ -715,10 +715,10 @@ main(int argc, char **argv)
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(l2fwd_launch_one_lcore, rsrc, SKIP_MAIN);
-	rte_ctrl_thread_create(&stats_thread, "l2fwd_event_stats", NULL,
-			       l2fwd_event_print_stats, rsrc);
+	rte_thread_create_internal_control(&stats_thread, "l2fwd_event_stats",
+					   l2fwd_event_print_stats, rsrc);
 	tmc_isol_start();
-	pthread_join(stats_thread, NULL);
+	rte_thread_join(stats_thread, NULL);
 	if (rsrc->event_mode) {
 		struct l2fwd_event_resources *evt_rsrc = rsrc->evt_rsrc;
 		for (i = 0; i < evt_rsrc->rx_adptr.nb_rx_adptr; i++)
