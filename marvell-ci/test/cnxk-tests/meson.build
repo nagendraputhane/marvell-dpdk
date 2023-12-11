@@ -87,7 +87,7 @@ test_subdirs_arm = [
         'trace_autotest',
         'mbuf_perf',
         'hotplug_test',
-#        'l2fwd_tmc',
+        'l2fwd_tmc',
         'l2fwd_event_pfc',
         'tx_vlan',
         'ipsec_reassembly_perf',
