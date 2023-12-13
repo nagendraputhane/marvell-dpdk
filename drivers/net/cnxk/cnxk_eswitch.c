@@ -2,10 +2,32 @@
  * Copyright(C) 2024 Marvell.
  */
 
+#include <rte_thash.h>
+
 #include <cnxk_eswitch.h>
 #include <cnxk_rep.h>
 
 #define CNXK_NIX_DEF_SQ_COUNT 512
+
+struct cnxk_esw_repr_hw_info *
+cnxk_eswitch_representor_hw_info(struct cnxk_eswitch_dev *eswitch_dev, uint16_t hw_func)
+{
+	struct cnxk_eswitch_devargs *esw_da;
+	int i, j;
+
+	if (!eswitch_dev)
+		return NULL;
+
+	/* Traversing the initialized represented list */
+	for (i = 0; i < eswitch_dev->nb_esw_da; i++) {
+		esw_da = &eswitch_dev->esw_da[i];
+		for (j = 0; j < esw_da->nb_repr_ports; j++) {
+			if (esw_da->repr_hw_info[j].hw_func == hw_func)
+				return &esw_da->repr_hw_info[j];
+		}
+	}
+	return NULL;
+}
 
 static int
 eswitch_hw_rsrc_cleanup(struct cnxk_eswitch_dev *eswitch_dev)
@@ -56,6 +78,11 @@ cnxk_eswitch_dev_remove(struct rte_pci_device *pci_dev)
 		cnxk_rep_dev_remove(eswitch_dev);
 
 	eswitch_hw_rsrc_cleanup(eswitch_dev);
+
+	/* Cleanup NPC rxtx flow rules */
+	cnxk_eswitch_flow_rules_remove_list(eswitch_dev, &eswitch_dev->esw_flow_list,
+					    eswitch_dev->npc.pf_func);
+
 	/* Check if this device is hosting common resource */
 	nix = roc_idev_npa_nix_get();
 	if (!nix || nix->pci_dev != pci_dev) {
@@ -66,7 +93,7 @@ cnxk_eswitch_dev_remove(struct rte_pci_device *pci_dev)
 	/* Try nix fini now */
 	rc = roc_nix_dev_fini(&eswitch_dev->nix);
 	if (rc == -EAGAIN) {
-		plt_info("%s: common resource in use by other devices", pci_dev->name);
+		plt_esw_dbg("%s: common resource in use by other devices", pci_dev->name);
 		goto exit;
 	} else if (rc) {
 		plt_err("Failed in nix dev fini, rc=%d", rc);
@@ -87,6 +114,21 @@ cnxk_eswitch_nix_rsrc_start(struct cnxk_eswitch_dev *eswitch_dev)
 	rc = roc_nix_npc_rx_ena_dis(&eswitch_dev->nix, true);
 	if (rc) {
 		plt_err("Failed to enable NPC rx %d", rc);
+		goto done;
+	}
+
+	/* Install eswitch PF mcam rules */
+	rc = cnxk_eswitch_pfvf_flow_rules_install(eswitch_dev, false);
+	if (rc) {
+		plt_err("Failed to install rxtx rules, rc %d", rc);
+		goto done;
+	}
+
+	/* Configure TPID for Eswitch PF LFs */
+	rc = roc_eswitch_nix_vlan_tpid_set(&eswitch_dev->nix, ROC_NIX_VLAN_TYPE_OUTER,
+					   CNXK_ESWITCH_VLAN_TPID, false);
+	if (rc) {
+		plt_err("Failed to configure tpid, rc %d", rc);
 		goto done;
 	}
 
@@ -533,6 +575,9 @@ eswitch_hw_rsrc_setup(struct cnxk_eswitch_dev *eswitch_dev)
 	rc = roc_npc_init(&eswitch_dev->npc);
 	if (rc)
 		goto rsrc_cleanup;
+
+	/* List for eswitch default flows */
+	TAILQ_INIT(&eswitch_dev->esw_flow_list);
 
 	return rc;
 rsrc_cleanup:
