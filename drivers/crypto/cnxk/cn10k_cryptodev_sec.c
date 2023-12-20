@@ -4,6 +4,7 @@
 
 #include <rte_security.h>
 
+#include "cn10k_cryptodev_ops.h"
 #include "cn10k_cryptodev_sec.h"
 #include "cnxk_cryptodev_ops.h"
 
@@ -26,8 +27,10 @@ cn10k_sec_session_create(void *dev, struct rte_security_session_conf *conf,
 
 	vf = crypto_dev->data->dev_private;
 
-	if (conf->protocol == RTE_SECURITY_PROTOCOL_IPSEC)
+	if (conf->protocol == RTE_SECURITY_PROTOCOL_IPSEC) {
+		((struct cn10k_sec_session *)sess)->userdata = conf->userdata;
 		return cn10k_ipsec_session_create(vf, qp, &conf->ipsec, conf->crypto_xform, sess);
+	}
 
 	if (conf->protocol == RTE_SECURITY_PROTOCOL_TLS_RECORD)
 		return cn10k_tls_record_session_create(vf, qp, &conf->tls_record,
@@ -126,4 +129,6 @@ cn10k_sec_ops_override(void)
 	cnxk_sec_ops.session_get_size = cn10k_sec_session_get_size;
 	cnxk_sec_ops.session_stats_get = cn10k_sec_session_stats_get;
 	cnxk_sec_ops.session_update = cn10k_sec_session_update;
+	cnxk_sec_ops.inb_pkt_rx_inject = cn10k_cryptodev_sec_inb_rx_inject;
+	cnxk_sec_ops.rx_inject_configure = cn10k_cryptodev_sec_rx_inject_configure;
 }
