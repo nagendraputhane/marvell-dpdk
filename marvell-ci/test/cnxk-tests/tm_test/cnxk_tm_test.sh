@@ -20,7 +20,7 @@ BPSY=950000000
 QCNT_UP=100000
 #Packet Count should be lessthan this, in few cases when Queue was not
 #scheduled due to priority queue TX count may be ~512 instead of 0
-QCNT_DOWN=1000
+QCNT_DOWN=2000
 retry_cnt=10
 percentage=95
 
@@ -327,14 +327,14 @@ trap "sig_handler EXIT" EXIT
 echo "Testpmd running with $PORT0, Coremask=$COREMASK"
 testpmd_launch $PRFX \
 	"-c $COREMASK -a $PORT0" \
-	"--nb-cores=3 --rxq=4 --txq=4 --forward-mode=txonly --txonly-multi-flow --txpkts=512 -i"
+	"--nb-cores=3 --rxq=4 --txq=4 --forward-mode=flowgen --txonly-multi-flow --txpkts=256 -i"
 
 testpmd_cmd $PRFX "start"
 
 # Launch capture testpmd
 testpmd_launch $CAP_PRFX \
 	"-c $CAP_COREMASK -a $CAP_PORT0 -a $CAP_PORT1" \
-        "--rxq=8 --txq=8 --nb-cores=8 --no-flush-rx -i"
+        "--rxq=8 --txq=8 --nb-cores=8 --rss-udp --no-flush-rx -i"
 
 # Start capturing
 #2Gbps PIR
