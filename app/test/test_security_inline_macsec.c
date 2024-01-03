@@ -708,7 +708,7 @@ mcs_stats_check(void *ctx, enum mcs_op op,
 
 		if ((opts->check_decap_stats || opts->check_verify_only_stats) &&
 				sc_stat.pkt_ok_cnt != 1)
-			return TEST_SKIPPED; /* FIXME pkt_ok_cnt not getting updated. */
+			return TEST_FAILED;
 
 		if (opts->check_pkts_invalid_stats && sc_stat.pkt_notvalid_cnt != 1)
 			return TEST_FAILED;
