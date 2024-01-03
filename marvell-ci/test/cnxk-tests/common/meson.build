@@ -6,7 +6,8 @@ if not get_option('tests')
 endif
 
 # This executable is used as a workaround to make sure that the exe_wrapper gets
-# called for scripts also. In the exe_wrapper, this executable is ignored.
+# called for scripts also. In the exe_wrapper, this executable is ignored. Note
+# that the cnxk_test_dep_objs is inherited from app/test/meson.build.
 cnxk_test_script_wrapper = executable(
     'cnxk-test-script-wrapper',
     files('cnxk_test_script_wrapper.c'),

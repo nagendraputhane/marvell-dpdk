@@ -98,6 +98,7 @@ test_subdirs_arm = [
         'multi_mempool',
         'ipsec_msns',
         'hwpool',
+        'policer_test',
         'flow_aging',
 ]
 
