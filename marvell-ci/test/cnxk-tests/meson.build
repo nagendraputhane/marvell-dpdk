@@ -100,6 +100,7 @@ test_subdirs_arm = [
         'hwpool',
         'policer_test',
         'flow_aging',
+        'l3fwd_non_eal',
 ]
 
 test_subdirs_x86 = [
