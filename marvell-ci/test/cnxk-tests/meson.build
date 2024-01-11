@@ -6,8 +6,10 @@ if not get_option('tests')
 endif
 
 cnxk_test_deps = [
+        'acl',
         'cmdline',
         'eventdev',
+        'fib',
         'graph',
         'ipsec',
         'net_ring',
