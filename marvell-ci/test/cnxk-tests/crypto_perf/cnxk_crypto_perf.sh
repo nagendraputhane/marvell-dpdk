@@ -22,6 +22,10 @@ PARTNUM_98XX=0x0b1
 ! $(cat /proc/device-tree/compatible | grep -q "cn10k")
 IS_CN10K=$?
 
+! $(cat /proc/device-tree/compatible | grep -q "cn10kb")
+IS_CN103=$?
+PART_106B0=$(cat /proc/device-tree/soc\@0/chiprevision)
+
 if [[ $IS_CN10K -ne 0 ]]; then
 	DEVTYPE="crypto_cn10k"
 	CRYPTO_DEVICE=$(lspci -d :a0f3 | head -1 | awk -e '{ print $1 }')
@@ -381,6 +385,39 @@ function aead_ipsec_perf()
 	crypto_perf_common "$algo_str" "--devtype $DEVTYPE --ptest throughput --optype ipsec --aead-algo $cipher --pool-sz $POOLSZ --aead-op encrypt --aead-key-sz 32 --aead-iv-sz 12 --aead-aad-sz 64 --digest-sz 16 --buffer-sz $BUFFERSZ --total-ops $NUMOPS --burst-sz $BURSTSZ --silent --csv-friendly"
 }
 
+function aes_sha1_hmac_tls12_perf()
+{
+	local cipher="aes-cbc"
+	local auth="sha1-hmac"
+	local algo_str="${cipher}_${auth}-tls1.2"
+
+	crypto_perf_common "$algo_str" "--devtype $DEVTYPE --ptest throughput --optype tls-record --cipher-algo $cipher --pool-sz $POOLSZ --cipher-op encrypt --cipher-key-sz 16 --cipher-iv-sz 16 --auth-algo $auth --auth-op generate --auth-key-sz 20 --digest-sz 16 --buffer-sz $BUFFERSZ --total-ops $NUMOPS --burst-sz $BURSTSZ --silent --csv-friendly --tls-version TLS1.2"
+}
+
+function aead_tls12_perf()
+{
+	local cipher="aes-gcm"
+	local algo_str="${cipher}-tls1.2"
+
+	crypto_perf_common "$algo_str" "--devtype $DEVTYPE --ptest throughput --optype tls-record --aead-algo $cipher --pool-sz $POOLSZ --aead-op encrypt --aead-key-sz 32  --digest-sz 16 --buffer-sz $BUFFERSZ --total-ops $NUMOPS --burst-sz $BURSTSZ --silent --csv-friendly --tls-version TLS1.2"
+}
+
+function aes_sha1_hmac_dtls12_perf()
+{
+	local cipher="aes-cbc"
+	local auth="sha1-hmac"
+	local algo_str="${cipher}_${auth}-dtls1.2"
+
+	crypto_perf_common "$algo_str" "--devtype $DEVTYPE --ptest throughput --optype tls-record --cipher-algo $cipher --pool-sz $POOLSZ --cipher-op encrypt --cipher-key-sz 16 --cipher-iv-sz 16 --auth-algo $auth --auth-op generate --auth-key-sz 20 --digest-sz 16 --buffer-sz $BUFFERSZ --total-ops $NUMOPS --burst-sz $BURSTSZ --silent --csv-friendly --tls-version DTLS1.2"
+}
+
+function aead_dtls12_perf()
+{
+	local cipher="aes-gcm"
+	local algo_str="${cipher}-dtls1.2"
+
+	crypto_perf_common "$algo_str" "--devtype $DEVTYPE --ptest throughput --optype tls-record --aead-algo $cipher --pool-sz $POOLSZ --aead-op encrypt --aead-key-sz 32 --digest-sz 16 --buffer-sz $BUFFERSZ --total-ops $NUMOPS --burst-sz $BURSTSZ --silent --csv-friendly --tls-version DTLS1.2"
+}
 
 function zuc_eia3_perf()
 {
@@ -431,6 +468,13 @@ aead_ipsec_perf
 zuc_eia3_perf
 zuc_eea3_perf
 ae_modex_perf
+
+if [[ $IS_CN103 -ne 0 ]] || [[ $PART_106B0 == "B0" ]]; then
+	aead_tls12_perf
+	aes_sha1_hmac_tls12_perf
+	aead_dtls12_perf
+	aes_sha1_hmac_dtls12_perf
+fi
 
 echo "Crypto perf application completed"
 exit 0
