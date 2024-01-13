@@ -27,7 +27,7 @@
 						((s).var - 1))
 #define CNXK_DPI_MAX_DESC		    32768
 #define CNXK_DPI_MIN_DESC		    2
-#define CNXK_DPI_MAX_VCHANS_PER_QUEUE	    4
+#define CNXK_DPI_MAX_VCHANS_PER_QUEUE	    128
 #define CNXK_DPI_QUEUE_BUF_SIZE		    16256
 #define CNXK_DPI_POOL_MAX_CACHE_SZ	    (16)
 #define CNXK_DPI_DW_PER_SINGLE_CMD	    8
