@@ -2069,8 +2069,8 @@ test_combined(struct pdcp_test_conf *ul_conf)
 	return ret;
 }
 
-#define MIN_DATA_LEN 32
-#define MAX_DATA_LEN 8100
+#define MIN_DATA_LEN 0
+#define MAX_DATA_LEN 9000
 
 static int
 test_combined_data_walkthrough(struct pdcp_test_conf *test_conf)
