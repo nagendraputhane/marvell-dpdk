@@ -122,11 +122,24 @@ trap "sig_handler EXIT" EXIT
 # Get CPU PART NUMBER
 PARTNUM_106XX=0xd49
 PARTNUM=$(grep -m 1 'CPU part' /proc/cpuinfo | awk -F': ' '{print $2}')
+DTC=$(tr -d '\0' </proc/device-tree/model | awk '{print $2}')
+
+if [[ $DTC == "CN103XX" ]]; then
+	CORES=0x0000ff
+else
+	CORES=0xff0000
+fi
+
+
 if [[ $PARTNUM == $PARTNUM_98XX ]]; then
 	HW="cn98"
 else
 	if [[ $PARTNUM == $PARTNUM_106XX ]]; then
-		HW="cn106"
+		if [[ $DTC == "CN103XX" ]]; then
+			HW="cn103"
+		else
+			HW="cn106"
+		fi
 		TOLERANCE=$(echo "$TOLERANCE - 3" | bc)
 	else
 		HW="cn96"
@@ -326,11 +339,11 @@ run_one() {
 			exit 1
 		fi
 
-		echo -n "Starting testpmd with '-c 0xff0000 -a $IF0 -a $IF1 "
+		echo -n "Starting testpmd with '-c $CORES -a $IF0 -a $IF1 "
 		echo " ${test_eal_args[$idx]} -- ${test_args[$idx]} -i'"
 
 		tail -f $in | \
-			$unbuffer dpdk-testpmd -c 0xff0000 \
+			$unbuffer dpdk-testpmd -c $CORES \
 			--file-prefix $PRFX -a $IF0 -a $IF1 \
 			${test_eal_args[$idx]} -- \
 			${test_args[$idx]} -i &>$out 2>&1 &
@@ -368,12 +381,12 @@ run_one() {
 			exit 1
 		fi
 
-		echo -n "Starting l3fwd with '-c 0xff0000 -a $IF0 "
+		echo -n "Starting l3fwd with '-c $CORES -a $IF0 "
 		echo " ${test_eal_args[$idx]} -- ${test_args[$idx]}'"
 
 		tail -f $in | \
 			$unbuffer dpdk-l3fwd --file-prefix $PRFX \
-			-c 0xff0000 -a $IF0 ${test_eal_args[$idx]} -- \
+			-c $CORES -a $IF0 ${test_eal_args[$idx]} -- \
 			${test_args[$idx]} &>$out 2>&1 &
 		# Wait for l3fwd to be up
 		itr=0
@@ -397,12 +410,12 @@ run_one() {
 			exit 1
 		fi
 
-		echo -n "Starting l2fwd with '-c 0xff0000 -a $IF0 "
+		echo -n "Starting l2fwd with '-c $CORES -a $IF0 "
 		echo " ${test_eal_args[$idx]} -- ${test_args[$idx]} -i'"
 
 		tail -f $in | \
 			$unbuffer dpdk-l2fwd --file-prefix $PRFX \
-			-c 0xff0000 -a $IF0 ${test_eal_args[$idx]} -- \
+			-c $CORES -a $IF0 ${test_eal_args[$idx]} -- \
 			${test_args[$idx]} &>$out 2>&1 &
 		# Wait for l2fwd to be up
 		itr=0
@@ -498,7 +511,11 @@ if [[ $IS_CN10K -ne 0 ]]; then
 	register_fwd_test "TESTPMD_LBK_NO_OFFLOAD" "testpmd" "" "--no-flush-rx --nb-cores=1" "1"
 fi
 
-register_fwd_test "L3FWD_1C" "l3fwd" "" "-p 0x1 --config (0,0,23) -P" "0"
+if [[ $DTC == "CN103XX" ]]; then
+	register_fwd_test "L3FWD_1C" "l3fwd" "" "-p 0x1 --config (0,0,7) -P" "0"
+else
+	register_fwd_test "L3FWD_1C" "l3fwd" "" "-p 0x1 --config (0,0,23) -P" "0"
+fi
 
 register_fwd_test "L2FWD_1C" "l2fwd" "" "-p 0x1 -T 0 -P" "0"
 

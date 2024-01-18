@@ -33,6 +33,7 @@ else
         fi
 fi
 
+DTC=$(tr -d '\0' </proc/device-tree/model | awk '{print $2}')
 
 function sig_handler()
 {
@@ -158,17 +159,26 @@ function testpmd_rxbps_stats()
 function run_testpmd()
 {
 	echo "Testpmd running with Coremask=$COREMASK"
+	CORES_TX="0-4"
+	CORES_RX="5-10"
+	CORES=4
+
+	if [[ $DTC == "CN103XX" ]]; then
+		CORES_TX="0-3"
+		CORES_RX="4-7"
+		CORES=3
+	fi
 
 	testpmd_launch $PRFX \
-		"-l 0-4 -a $TXPORT" \
-		"--no-flush-rx --nb-cores=4 --forward-mode=txonly --txonly-multi-flow --txq=4 --rxq=4"
+		"-l $CORES_TX -a $TXPORT" \
+		"--no-flush-rx --nb-cores=$CORES --forward-mode=txonly --txonly-multi-flow --txq=4 --rxq=4"
 
 	testpmd_cmd $PRFX "start"
 
 	# Launch capture testpmd
 	testpmd_launch $CAP_PRFX \
-		"-l 5-10 -a $RXPORT" \
-        	"--no-flush-rx --nb-cores=4 --forward-mode=rxonly --txq=4 --rxq=4"
+		"-l $CORES_RX -a $RXPORT" \
+		"--no-flush-rx --nb-cores=$CORES --forward-mode=rxonly --txq=4 --rxq=4"
 }
 
 function stop_testpmd()

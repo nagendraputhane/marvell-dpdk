@@ -17,6 +17,7 @@ TXPRFX="cman-config_tx"
 RXPRFX="cman-config_rx"
 TESTPMD_TXPORT="0002:01:00.1"
 TESTPMD_RXPORT="0002:01:00.2"
+DTC=$(tr -d '\0' </proc/device-tree/model | awk '{print $2}')
 
 if [ -f $CNXKTESTPATH/../board/oxk-devbind-basic.sh ]
 then
@@ -300,22 +301,34 @@ function run_testpmd()
 	else
 		mbufs=2048
 	fi
+	if [[ $DTC == "CN103XX" ]]; then
+		TX_CORES="0-3"
+		RX_CORES="4-7"
+		QUEUES=3
+		QUEUES_MQ=2
+	else
+		TX_CORES="0-10"
+		RX_CORES="11-20"
+		QUEUES=8
+		QUEUES_MQ=4
+	fi
+
 	testpmd_launch $TXPRFX \
-        	"-l 0-10 -n 1 -a $TESTPMD_TXPORT" \
-        	"--no-flush-rx --nb-cores=8 --forward-mode=txonly --txq=8 --rxq=8"
+		"-l $TX_CORES -n 1 -a $TESTPMD_TXPORT" \
+		"--no-flush-rx --nb-cores=$QUEUES --forward-mode=txonly --txq=$QUEUES --rxq=$QUEUES"
 	sleep 1
 	testpmd_cmd $TXPRFX "start"
 
 	if [ $1 == "mempool" ] ;then
 		testpmd_launch $RXPRFX \
-			"-l 11-20 -n 1 -a $TESTPMD_RXPORT" \
-			"--no-flush-rx --nb-cores=4 --forward-mode=rxonly --txq=4 --rxq=4 --total-num-mbufs=$mbufs"
+			"-l $RX_CORES -n 1 -a $TESTPMD_RXPORT" \
+			"--no-flush-rx --nb-cores=$QUEUES --forward-mode=rxonly --txq=$QUEUES_MQ --rxq=$QUEUES_MQ --total-num-mbufs=$mbufs"
 	fi
 
 	if [ $1 == "queue" ] ;then
 		testpmd_launch $RXPRFX \
-			"-l 11-20 -n 1 -a $TESTPMD_RXPORT" \
-			"--no-flush-rx --nb-cores=4 --forward-mode=rxonly --txq=4 --rxq=4"
+			"-l $RX_CORES -n 1 -a $TESTPMD_RXPORT" \
+			"--no-flush-rx --nb-cores=$QUEUES --forward-mode=rxonly --txq=$QUEUES_MQ --rxq=$QUEUES_MQ"
 	fi
 
 }

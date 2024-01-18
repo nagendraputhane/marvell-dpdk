@@ -26,6 +26,18 @@ run_command(copy_data, 'ref_numbers/rclk2500_sclk1000.cn106.l3fwd')
 run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn106.testpmd')
 run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn106.l2fwd')
 run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn106.l3fwd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn103.testpmd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn103.l2fwd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1100.cn103.l3fwd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1000.cn103.testpmd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1000.cn103.l2fwd')
+run_command(copy_data, 'ref_numbers/rclk2500_sclk1000.cn103.l3fwd')
+run_command(copy_data, 'ref_numbers/rclk2200_sclk1000.cn103.testpmd')
+run_command(copy_data, 'ref_numbers/rclk2200_sclk1000.cn103.l2fwd')
+run_command(copy_data, 'ref_numbers/rclk2200_sclk1000.cn103.l3fwd')
+run_command(copy_data, 'ref_numbers/rclk2000_sclk1000.cn103.testpmd')
+run_command(copy_data, 'ref_numbers/rclk2000_sclk1000.cn103.l2fwd')
+run_command(copy_data, 'ref_numbers/rclk2000_sclk1000.cn103.l3fwd')
 # Add the meson test
 test(test_name,
     cnxk_test_script_wrapper,
