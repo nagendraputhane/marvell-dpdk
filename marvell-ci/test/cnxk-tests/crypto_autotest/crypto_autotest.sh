@@ -34,6 +34,7 @@ fi
 run_cn10k_crypto_autotest() {
 	DPDK_TEST=cryptodev_cn10k_autotest $DPDK_TEST_BIN $CN10K_EAL_ARGS
 	DPDK_TEST=cryptodev_cn10k_asym_autotest $DPDK_TEST_BIN $CN10K_EAL_ARGS
+	DPDK_TEST=cryptodev_cn10k_raw_api_autotest $DPDK_TEST_BIN $CN10K_EAL_ARGS
 	DPDK_TEST=cryptodev_crosscheck $DPDK_TEST_BIN $CN10K_EAL_ARGS $CNXK_EAL_VDEV_OPENSSL
 }
 
