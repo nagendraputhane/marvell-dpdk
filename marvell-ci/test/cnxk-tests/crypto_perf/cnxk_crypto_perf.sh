@@ -24,13 +24,13 @@ IS_CN10K=$?
 
 ! $(cat /proc/device-tree/compatible | grep -q "cn10kb")
 IS_CN103=$?
-PART_106B0=$(cat /proc/device-tree/soc\@0/chiprevision)
 
 if [[ $IS_CN10K -ne 0 ]]; then
 	DEVTYPE="crypto_cn10k"
 	CRYPTO_DEVICE=$(lspci -d :a0f3 | head -1 | awk -e '{ print $1 }')
 	FEXT="106xx"
 	HW="cn10k"
+	PART_106B0=$(cat /proc/device-tree/soc\@0/chiprevision)
 else
 	DEVTYPE="crypto_cn9k"
 	CRYPTO_DEVICE=$(lspci -d :a0fe | head -1 | awk -e '{ print $1 }')
