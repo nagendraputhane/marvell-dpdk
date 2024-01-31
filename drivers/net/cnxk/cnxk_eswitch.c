@@ -51,7 +51,7 @@ cnxk_eswitch_representor_hw_info(struct cnxk_eswitch_dev *eswitch_dev, uint16_t 
 }
 
 static int
-eswitch_hw_rsrc_cleanup(struct cnxk_eswitch_dev *eswitch_dev)
+eswitch_hw_rsrc_cleanup(struct cnxk_eswitch_dev *eswitch_dev, struct rte_pci_device *pci_dev)
 {
 	struct roc_nix *nix;
 	int rc = 0;
@@ -66,9 +66,22 @@ eswitch_hw_rsrc_cleanup(struct cnxk_eswitch_dev *eswitch_dev)
 		goto exit;
 	}
 
+	/* Check if this device is hosting common resource */
+	nix = roc_idev_npa_nix_get();
+	if (!nix || nix->pci_dev != pci_dev) {
+		rc = 0;
+		goto exit;
+	}
+
+	/* Try nix fini now */
 	rc = roc_nix_dev_fini(nix);
-	if (rc && rc != -EAGAIN)
+	if (rc == -EAGAIN) {
+		plt_info("Common resource in use by other devices %s", pci_dev->name);
+		goto exit;
+	} else if (rc) {
 		plt_err("Failed in nix dev fini, rc=%d", rc);
+		goto exit;
+	}
 
 	rte_free(eswitch_dev->txq);
 	rte_free(eswitch_dev->rxq);
@@ -82,7 +95,6 @@ static int
 cnxk_eswitch_dev_remove(struct rte_pci_device *pci_dev)
 {
 	struct cnxk_eswitch_dev *eswitch_dev;
-	struct roc_nix *nix;
 	int rc = 0;
 
 	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
@@ -139,28 +151,12 @@ cnxk_eswitch_dev_remove(struct rte_pci_device *pci_dev)
 		cnxk_rep_dev_remove(eswitch_dev);
 	}
 
-	eswitch_hw_rsrc_cleanup(eswitch_dev);
-
 	/* Cleanup NPC rxtx flow rules */
 	cnxk_eswitch_flow_rules_remove_list(eswitch_dev, &eswitch_dev->esw_flow_list,
 					    eswitch_dev->npc.pf_func);
 
-	/* Check if this device is hosting common resource */
-	nix = roc_idev_npa_nix_get();
-	if (!nix || nix->pci_dev != pci_dev) {
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	/* Try nix fini now */
-	rc = roc_nix_dev_fini(&eswitch_dev->nix);
-	if (rc == -EAGAIN) {
-		plt_esw_dbg("%s: common resource in use by other devices", pci_dev->name);
-		goto exit;
-	} else if (rc) {
-		plt_err("Failed in nix dev fini, rc=%d", rc);
-		goto exit;
-	}
+	/* Cleanup HW resources */
+	eswitch_hw_rsrc_cleanup(eswitch_dev, pci_dev);
 
 	rte_free(eswitch_dev);
 exit:
@@ -618,7 +614,7 @@ fail:
 }
 
 static int
-eswitch_hw_rsrc_setup(struct cnxk_eswitch_dev *eswitch_dev)
+eswitch_hw_rsrc_setup(struct cnxk_eswitch_dev *eswitch_dev, struct rte_pci_device *pci_dev)
 {
 	struct roc_nix *nix;
 	int rc;
@@ -643,7 +639,7 @@ eswitch_hw_rsrc_setup(struct cnxk_eswitch_dev *eswitch_dev)
 
 	return rc;
 rsrc_cleanup:
-	eswitch_hw_rsrc_cleanup(eswitch_dev);
+	eswitch_hw_rsrc_cleanup(eswitch_dev, pci_dev);
 fail:
 	return rc;
 }
@@ -740,7 +736,7 @@ cnxk_eswitch_dev_probe(struct rte_pci_driver *pci_drv, struct rte_pci_device *pc
 		eswitch_dev = mz->addr;
 		eswitch_dev->pci_dev = pci_dev;
 
-		rc = eswitch_hw_rsrc_setup(eswitch_dev);
+		rc = eswitch_hw_rsrc_setup(eswitch_dev, pci_dev);
 		if (rc) {
 			plt_err("Failed to setup hw rsrc, rc=%d(%s)", rc, roc_error_msg_get(rc));
 			goto free_mem;
@@ -784,7 +780,7 @@ cnxk_eswitch_dev_probe(struct rte_pci_driver *pci_drv, struct rte_pci_device *pc
 
 	return rc;
 rsrc_cleanup:
-	eswitch_hw_rsrc_cleanup(eswitch_dev);
+	eswitch_hw_rsrc_cleanup(eswitch_dev, pci_dev);
 free_mem:
 	rte_memzone_free(mz);
 fail:
