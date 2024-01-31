@@ -806,7 +806,8 @@ cn10k_nix_prefree_seg_vec(struct rte_mbuf **mbufs, struct rte_mbuf **extm,
 			m0->next = *extm;
 			*extm = m0;
 		} else {
-			sqe_id = __atomic_fetch_add(&txq->tx_compl.sqe_id, 1, __ATOMIC_RELAXED);
+			sqe_id = rte_atomic_fetch_add_explicit(&txq->tx_compl.sqe_id, 1,
+							       rte_memory_order_relaxed);
 			sqe_id = sqe_id & nb_desc_mask;
 			/* Set PNC */
 			w0 |= BIT_ULL(43);
@@ -836,7 +837,8 @@ cn10k_nix_prefree_seg_vec(struct rte_mbuf **mbufs, struct rte_mbuf **extm,
 			m1->next = *extm;
 			*extm = m1;
 		} else {
-			sqe_id = __atomic_fetch_add(&txq->tx_compl.sqe_id, 1, __ATOMIC_RELAXED);
+			sqe_id = rte_atomic_fetch_add_explicit(&txq->tx_compl.sqe_id, 1,
+							       rte_memory_order_relaxed);
 			sqe_id = sqe_id & nb_desc_mask;
 			/* Set PNC */
 			w0 |= BIT_ULL(43);
@@ -866,7 +868,8 @@ cn10k_nix_prefree_seg_vec(struct rte_mbuf **mbufs, struct rte_mbuf **extm,
 			m2->next = *extm;
 			*extm = m2;
 		} else {
-			sqe_id = __atomic_fetch_add(&txq->tx_compl.sqe_id, 1, __ATOMIC_RELAXED);
+			sqe_id = rte_atomic_fetch_add_explicit(&txq->tx_compl.sqe_id, 1,
+							       rte_memory_order_relaxed);
 			sqe_id = sqe_id & nb_desc_mask;
 			/* Set PNC */
 			w0 |= BIT_ULL(43);
@@ -896,7 +899,8 @@ cn10k_nix_prefree_seg_vec(struct rte_mbuf **mbufs, struct rte_mbuf **extm,
 			m3->next = *extm;
 			*extm = m3;
 		} else {
-			sqe_id = __atomic_fetch_add(&txq->tx_compl.sqe_id, 1, __ATOMIC_RELAXED);
+			sqe_id = rte_atomic_fetch_add_explicit(&txq->tx_compl.sqe_id, 1,
+							       rte_memory_order_relaxed);
 			sqe_id = sqe_id & nb_desc_mask;
 			/* Set PNC */
 			w0 |= BIT_ULL(43);
