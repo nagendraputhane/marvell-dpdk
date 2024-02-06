@@ -5,6 +5,7 @@
 #ifndef __CN10K_CRYPTODEV_SEC_H__
 #define __CN10K_CRYPTODEV_SEC_H__
 
+#include <rte_common.h>
 #include <rte_security.h>
 
 #include "roc_constants.h"
@@ -17,23 +18,24 @@ struct cn10k_sec_session {
 	struct rte_security_session rte_sess;
 
 	/** PMD private space */
+	RTE_MARKER cacheline1 __rte_cache_min_aligned;
 
-	enum rte_security_session_protocol proto;
 	/** Pre-populated CPT inst words */
 	struct cnxk_cpt_inst_tmpl inst;
 	uint16_t max_extended_len;
 	uint16_t iv_offset;
+	uint8_t proto;
 	uint8_t iv_length;
 	union {
 		struct {
 			uint8_t ip_csum;
-			bool is_outbound;
+			uint8_t is_outbound : 1;
 		} ipsec;
 		struct {
 			uint8_t enable_padding : 1;
 			uint8_t tail_fetch_len : 2;
-			uint8_t rvsd : 5;
-			bool is_write;
+			uint8_t is_write : 1;
+			uint8_t rvsd : 4;
 		} tls;
 	};
 	/** Queue pair */
