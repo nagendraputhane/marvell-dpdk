@@ -12147,6 +12147,32 @@ test_tls_1_2_record_proto_sgl(void)
 }
 
 static int
+test_tls_record_proto_sgl_data_walkthrough(enum rte_security_tls_version tls_version)
+{
+	struct tls_record_test_flags flags = {
+		.nb_segs_in_mbuf = 5,
+		.tls_version = tls_version,
+		.data_walkthrough = true
+	};
+	struct crypto_testsuite_params *ts_params = &testsuite_params;
+	struct rte_cryptodev_info dev_info;
+
+	rte_cryptodev_info_get(ts_params->valid_devs[0], &dev_info);
+	if (!(dev_info.feature_flags & RTE_CRYPTODEV_FF_IN_PLACE_SGL)) {
+		printf("Device doesn't support in-place scatter-gather. Test Skipped.\n");
+		return TEST_SKIPPED;
+	}
+
+	return test_tls_record_proto_all(&flags);
+}
+
+static int
+test_tls_1_2_record_proto_sgl_data_walkthrough(void)
+{
+	return test_tls_record_proto_sgl_data_walkthrough(RTE_SECURITY_VERSION_TLS_1_2);
+}
+
+static int
 test_tls_record_proto_corrupt_pkt(void)
 {
 	struct tls_record_test_flags flags = {
@@ -12212,26 +12238,6 @@ test_dtls_1_2_record_proto_data_walkthrough(void)
 
 	flags.data_walkthrough = true;
 	flags.tls_version = RTE_SECURITY_VERSION_DTLS_1_2;
-
-	return test_tls_record_proto_all(&flags);
-}
-
-static int
-test_tls_1_2_record_proto_sgl_data_walkthrough(void)
-{
-	struct tls_record_test_flags flags = {
-		.nb_segs_in_mbuf = 5,
-		.tls_version = RTE_SECURITY_VERSION_TLS_1_2,
-		.data_walkthrough = true
-	};
-	struct crypto_testsuite_params *ts_params = &testsuite_params;
-	struct rte_cryptodev_info dev_info;
-
-	rte_cryptodev_info_get(ts_params->valid_devs[0], &dev_info);
-	if (!(dev_info.feature_flags & RTE_CRYPTODEV_FF_IN_PLACE_SGL)) {
-		printf("Device doesn't support in-place scatter-gather. Test Skipped.\n");
-		return TEST_SKIPPED;
-	}
 
 	return test_tls_record_proto_all(&flags);
 }
@@ -12350,6 +12356,12 @@ test_dtls_1_2_record_proto_sgl(void)
 	}
 
 	return test_tls_record_proto_all(&flags);
+}
+
+static int
+test_dtls_1_2_record_proto_sgl_data_walkthrough(void)
+{
+	return test_tls_record_proto_sgl_data_walkthrough(RTE_SECURITY_VERSION_DTLS_1_2);
 }
 
 static int
@@ -17602,6 +17614,10 @@ static struct unit_test_suite dtls12_record_proto_testsuite  = {
 			"Multi-segmented mode",
 			ut_setup_security, ut_teardown,
 			test_dtls_1_2_record_proto_sgl),
+		TEST_CASE_NAMED_ST(
+			"Multi-segmented mode data walkthrough",
+			ut_setup_security, ut_teardown,
+			test_dtls_1_2_record_proto_sgl_data_walkthrough),
 		TEST_CASE_NAMED_ST(
 			"Packet corruption",
 			ut_setup_security, ut_teardown,
