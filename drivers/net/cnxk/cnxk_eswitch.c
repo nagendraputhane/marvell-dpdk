@@ -557,13 +557,6 @@ nix_lf_setup(struct cnxk_eswitch_dev *eswitch_dev)
 		goto free_cqs;
 	}
 
-	rc = roc_nix_rss_default_setup(nix,
-				       FLOW_KEY_TYPE_IPV4 | FLOW_KEY_TYPE_TCP | FLOW_KEY_TYPE_UDP);
-	if (rc) {
-		plt_err("rss default setup failed = %s(%d)", roc_error_msg_get(rc), rc);
-		goto free_cqs;
-	}
-
 	rc = roc_nix_tm_init(nix);
 	if (rc) {
 		plt_err("tm failed = %s(%d)", roc_error_msg_get(rc), rc);
