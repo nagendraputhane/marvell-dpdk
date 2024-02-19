@@ -10,6 +10,11 @@
 #define RX_DESC_PER_QUEUE  256
 #define NB_REP_VDEV_MBUF   1024
 
+static const struct rte_eth_xstat_name cnxk_rep_xstats_string[] = {
+	{"rep_nb_rx"},
+	{"rep_nb_tx"},
+};
+
 static uint16_t
 cnxk_rep_tx_burst(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 {
@@ -24,6 +29,7 @@ cnxk_rep_tx_burst(void *tx_queue, struct rte_mbuf **tx_pkts, uint16_t nb_pkts)
 	plt_rep_dbg("Transmitting %d packets on eswitch queue %d", nb_pkts, txq->qid);
 	n_tx = cnxk_eswitch_dev_tx_burst(rep_dev->parent_dev, txq->qid, tx_pkts, nb_pkts,
 					 NIX_TX_OFFLOAD_VLAN_QINQ_F);
+	txq->stats.pkts += n_tx;
 	return n_tx;
 }
 
@@ -43,6 +49,7 @@ cnxk_rep_rx_burst(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts)
 		return 0;
 
 	plt_rep_dbg("Received %d packets on eswitch queue %d", n_rx, rxq->qid);
+	rxq->stats.pkts += n_rx;
 	return n_rx;
 }
 
@@ -696,6 +703,124 @@ fail:
 	return rc;
 }
 
+int
+cnxk_rep_xstats_get(struct rte_eth_dev *eth_dev, struct rte_eth_xstat *stats, unsigned int n)
+{
+	struct cnxk_rep_dev *rep_dev = cnxk_rep_pmd_priv(eth_dev);
+	unsigned int num = RTE_DIM(cnxk_rep_xstats_string);
+	int cnt = 0;
+
+	if (!rep_dev)
+		return -EINVAL;
+
+	if (n < num)
+		return num;
+
+	stats[cnt].id = cnt;
+	stats[cnt].value = rep_dev->rxq->stats.pkts;
+	cnt++;
+	stats[cnt].id = cnt;
+	stats[cnt].value = rep_dev->txq->stats.pkts;
+	cnt++;
+
+	return cnt;
+}
+
+int
+cnxk_rep_xstats_reset(struct rte_eth_dev *eth_dev)
+{
+	struct cnxk_rep_dev *rep_dev = cnxk_rep_pmd_priv(eth_dev);
+	int rc;
+
+	if (!rep_dev)
+		return -EINVAL;
+
+	rc = cnxk_rep_stats_reset(eth_dev);
+	if (rc < 0 && rc != -ENOTSUP)
+		return rc;
+
+	rep_dev->rxq->stats.pkts = 0;
+	rep_dev->txq->stats.pkts = 0;
+
+	return 0;
+}
+
+int
+cnxk_rep_xstats_get_names(__rte_unused struct rte_eth_dev *eth_dev,
+			  struct rte_eth_xstat_name *xstats_names, unsigned int n)
+{
+	unsigned int num = RTE_DIM(cnxk_rep_xstats_string);
+	unsigned int i;
+
+	if (xstats_names == NULL)
+		return num;
+
+	if (n < num)
+		return num;
+
+	for (i = 0; i < num; i++)
+		rte_strscpy(xstats_names[i].name, cnxk_rep_xstats_string[i].name,
+			    sizeof(xstats_names[i].name));
+
+	return num;
+}
+
+int
+cnxk_rep_xstats_get_by_id(struct rte_eth_dev *eth_dev, const uint64_t *ids, uint64_t *values,
+			  unsigned int n)
+{
+	struct cnxk_rep_dev *rep_dev = cnxk_rep_pmd_priv(eth_dev);
+	unsigned int num = RTE_DIM(cnxk_rep_xstats_string);
+	unsigned int i;
+
+	if (!rep_dev)
+		return -EINVAL;
+
+	if (n < num)
+		return num;
+
+	if (n > num)
+		return -EINVAL;
+
+	for (i = 0; i < n; i++) {
+		switch (ids[i]) {
+		case 0:
+			values[i] = rep_dev->rxq->stats.pkts;
+			break;
+		case 1:
+			values[i] = rep_dev->txq->stats.pkts;
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	return n;
+}
+
+int
+cnxk_rep_xstats_get_names_by_id(__rte_unused struct rte_eth_dev *eth_dev, const uint64_t *ids,
+				struct rte_eth_xstat_name *xstats_names, unsigned int n)
+{
+	unsigned int num = RTE_DIM(cnxk_rep_xstats_string);
+	unsigned int i;
+
+	if (n < num)
+		return num;
+
+	if (n > num)
+		return -EINVAL;
+
+	for (i = 0; i < n; i++) {
+		if (ids[i] >= num)
+			return -EINVAL;
+		rte_strscpy(xstats_names[i].name, cnxk_rep_xstats_string[ids[i]].name,
+			    sizeof(xstats_names[i].name));
+	}
+
+	return n;
+}
+
 /* CNXK platform representor dev ops */
 struct eth_dev_ops cnxk_rep_dev_ops = {
 	.dev_infos_get = cnxk_rep_dev_info_get,
@@ -714,5 +839,10 @@ struct eth_dev_ops cnxk_rep_dev_ops = {
 	.dev_stop = cnxk_rep_dev_stop,
 	.stats_get = cnxk_rep_stats_get,
 	.stats_reset = cnxk_rep_stats_reset,
-	.flow_ops_get = cnxk_rep_flow_ops_get
+	.flow_ops_get = cnxk_rep_flow_ops_get,
+	.xstats_get = cnxk_rep_xstats_get,
+	.xstats_reset = cnxk_rep_xstats_reset,
+	.xstats_get_names = cnxk_rep_xstats_get_names,
+	.xstats_get_by_id = cnxk_rep_xstats_get_by_id,
+	.xstats_get_names_by_id = cnxk_rep_xstats_get_names_by_id
 };
