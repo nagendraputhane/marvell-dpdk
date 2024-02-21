@@ -31,8 +31,7 @@ enum cnxk_esw_da_pattern_type {
 };
 
 struct cnxk_esw_repte_msg {
-	uint16_t hw_func;
-	bool enable;
+	struct roc_eswitch_repte_notify_msg *notify_msg;
 
 	TAILQ_ENTRY(cnxk_esw_repte_msg) next;
 };

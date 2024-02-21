@@ -68,6 +68,7 @@ struct cnxk_rep_dev {
 	struct cnxk_rep_rxq *rxq;
 	struct cnxk_rep_txq *txq;
 	uint8_t mac_addr[RTE_ETHER_ADDR_LEN];
+	uint16_t repte_mtu;
 };
 
 /* Inline functions */

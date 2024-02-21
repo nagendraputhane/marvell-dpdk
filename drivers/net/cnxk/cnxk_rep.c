@@ -197,7 +197,8 @@ done:
 }
 
 static int
-cnxk_representee_msg_process(struct cnxk_eswitch_dev *eswitch_dev, uint16_t hw_func, bool enable)
+cnxk_representee_state_msg_process(struct cnxk_eswitch_dev *eswitch_dev, uint16_t hw_func,
+				   bool enable)
 {
 	struct cnxk_eswitch_devargs *esw_da;
 	uint16_t rep_id = UINT16_MAX;
@@ -250,6 +251,64 @@ fail:
 	return rc;
 }
 
+static int
+cnxk_representee_mtu_msg_process(struct cnxk_eswitch_dev *eswitch_dev, uint16_t hw_func,
+				 uint16_t rep_id, uint16_t mtu)
+{
+	struct cnxk_rep_dev *rep_dev = NULL;
+	struct rte_eth_dev *rep_eth_dev;
+	int rc = 0;
+	int i;
+
+	for (i = 0; i < eswitch_dev->repr_cnt.nb_repr_probed; i++) {
+		rep_eth_dev = eswitch_dev->rep_info[i].rep_eth_dev;
+		if (!rep_eth_dev) {
+			plt_err("Failed to get rep ethdev handle");
+			rc = -EINVAL;
+			goto done;
+		}
+
+		rep_dev = cnxk_rep_pmd_priv(rep_eth_dev);
+		if (rep_dev->rep_id == rep_id) {
+			plt_rep_dbg("Setting MTU as %d for hw_func %x rep_id %d\n", mtu, hw_func,
+				    rep_id);
+			rep_dev->repte_mtu = mtu;
+			break;
+		}
+	}
+
+done:
+	return rc;
+}
+
+static int
+cnxk_representee_msg_process(struct cnxk_eswitch_dev *eswitch_dev,
+			     struct roc_eswitch_repte_notify_msg *notify_msg)
+{
+	int rc = 0;
+
+	switch (notify_msg->type) {
+	case ROC_ESWITCH_REPTE_STATE:
+		plt_rep_dbg("	   type %d: hw_func %x action %s", notify_msg->type,
+			    notify_msg->state.hw_func,
+			    notify_msg->state.enable ? "enable" : "disable");
+		rc = cnxk_representee_state_msg_process(eswitch_dev, notify_msg->state.hw_func,
+							notify_msg->state.enable);
+		break;
+	case ROC_ESWITCH_REPTE_MTU:
+		plt_rep_dbg("	   type %d: hw_func %x rep_id %d mtu %d", notify_msg->type,
+			    notify_msg->mtu.hw_func, notify_msg->mtu.rep_id, notify_msg->mtu.mtu);
+		rc = cnxk_representee_mtu_msg_process(eswitch_dev, notify_msg->mtu.hw_func,
+						      notify_msg->mtu.rep_id, notify_msg->mtu.mtu);
+		break;
+	default:
+		plt_err("Invalid notification msg received %d", notify_msg->type);
+		break;
+	};
+
+	return rc;
+}
+
 static uint32_t
 cnxk_representee_msg_thread_main(void *arg)
 {
@@ -272,19 +331,18 @@ cnxk_representee_msg_thread_main(void *arg)
 		while (next_msg) {
 			msg = next_msg;
 			count++;
-			plt_rep_dbg("	Processing msg %d: hw_func %x action %s", count,
-				    msg->hw_func, msg->enable ? "enable" : "disable");
-
+			plt_rep_dbg("	Processing msg %d: ", count);
 			/* Unlocking for interrupt thread to grab lock
 			 * while thread process the message.
 			 */
 			pthread_mutex_unlock(&eswitch_dev->repte_msg_proc.mutex);
 			/* Processing the message */
-			cnxk_representee_msg_process(eswitch_dev, msg->hw_func, msg->enable);
+			cnxk_representee_msg_process(eswitch_dev, msg->notify_msg);
 			/* Locking as cond wait will unlock before wait */
 			pthread_mutex_lock(&eswitch_dev->repte_msg_proc.mutex);
 			next_msg = TAILQ_NEXT(msg, next);
 			TAILQ_REMOVE(&repte_msg_proc->msg_list, msg, next);
+			rte_free(msg->notify_msg);
 			rte_free(msg);
 		}
 	}
@@ -295,7 +353,7 @@ cnxk_representee_msg_thread_main(void *arg)
 }
 
 static int
-cnxk_representee_notification(void *roc_nix, uint16_t hw_func, bool enable)
+cnxk_representee_notification(void *roc_nix, struct roc_eswitch_repte_notify_msg *notify_msg)
 {
 	struct cnxk_esw_repte_msg_proc *repte_msg_proc;
 	struct cnxk_eswitch_dev *eswitch_dev;
@@ -318,10 +376,15 @@ cnxk_representee_notification(void *roc_nix, uint16_t hw_func, bool enable)
 		goto done;
 	}
 
-	msg->hw_func = hw_func;
-	msg->enable = enable;
+	msg->notify_msg = plt_zmalloc(sizeof(struct roc_eswitch_repte_notify_msg), 0);
+	if (!msg->notify_msg) {
+		plt_err("Failed to allocate memory");
+		rc = -ENOMEM;
+		goto done;
+	}
 
-	plt_rep_dbg("Pushing new notification : hw_func %x enable %d\n", msg->hw_func, enable);
+	rte_memcpy(msg->notify_msg, notify_msg, sizeof(struct roc_eswitch_repte_notify_msg));
+	plt_rep_dbg("Pushing new notification : msg type %d", msg->notify_msg->type);
 	pthread_mutex_lock(&eswitch_dev->repte_msg_proc.mutex);
 	TAILQ_INSERT_TAIL(&repte_msg_proc->msg_list, msg, next);
 	/* Signal vf message handler thread */
