@@ -45,7 +45,7 @@ echo "================================"
 	--file-prefix $TX_PREFIX \
 	-c 0x5 \
 	-a 0002:01:00.1,tx_compl_ena=1 \
-	-- --pkt-type 0xff\
+	-- --pkt-type 0xfffff\
 	--max-pkts 100 2>&1) > $TX_LOG
 
 echo "================================"
