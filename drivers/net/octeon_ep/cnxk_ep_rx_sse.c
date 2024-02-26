@@ -43,21 +43,27 @@ cnxk_ep_process_pkts_vec_sse(struct rte_mbuf **rx_pkts, struct otx_ep_droq *droq
 		m2 = recv_buf_list[idx2];
 		m3 = recv_buf_list[idx3];
 
+		/* Load packet size big-endian. */
 		s01 = _mm_set_epi32(cnxk_pktmbuf_mtod(m3, struct otx_ep_droq_info *)->length >> 48,
 				    cnxk_pktmbuf_mtod(m1, struct otx_ep_droq_info *)->length >> 48,
 				    cnxk_pktmbuf_mtod(m2, struct otx_ep_droq_info *)->length >> 48,
 				    cnxk_pktmbuf_mtod(m0, struct otx_ep_droq_info *)->length >> 48);
+		/* Convert to little-endian. */
 		s01 = _mm_shuffle_epi8(s01, bswap_mask);
+		/* Vertical add, consolidate outside loop */
 		bytes = _mm_add_epi32(bytes, s01);
+		/* Segregate to packet length and data length. */
 		s23 = _mm_shuffle_epi32(s01, _MM_SHUFFLE(3, 3, 1, 1));
 		s01 = _mm_shuffle_epi8(s01, cpy_mask);
 		s23 = _mm_shuffle_epi8(s23, cpy_mask);
 
-		*(uint64_t *)&m0->pkt_len = _mm_extract_epi64(s01, 0);
-		*(uint64_t *)&m1->pkt_len = _mm_extract_epi64(s01, 1);
-		*(uint64_t *)&m2->pkt_len = _mm_extract_epi64(s23, 0);
-		*(uint64_t *)&m3->pkt_len = _mm_extract_epi64(s23, 1);
+		/* Store packet length and data length to mbuf. */
+		*(uint64_t *)&m0->pkt_len = ((rte_xmm_t)s01).u64[0];
+		*(uint64_t *)&m1->pkt_len = ((rte_xmm_t)s01).u64[1];
+		*(uint64_t *)&m2->pkt_len = ((rte_xmm_t)s23).u64[0];
+		*(uint64_t *)&m3->pkt_len = ((rte_xmm_t)s23).u64[1];
 
+		/* Reset rearm data. */
 		*(uint64_t *)&m0->rearm_data = droq->rearm_data;
 		*(uint64_t *)&m1->rearm_data = droq->rearm_data;
 		*(uint64_t *)&m2->rearm_data = droq->rearm_data;
