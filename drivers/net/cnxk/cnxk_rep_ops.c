@@ -622,6 +622,9 @@ cnxk_rep_stats_reset(struct rte_eth_dev *ethdev)
 	if (!rep_dev->is_vf_active)
 		return 0;
 
+	if (rep_dev->native_repte)
+		return -ENOTSUP;
+
 	rc = process_eth_stats(rep_dev, &adata, CNXK_REP_MSG_ETH_STATS_CLEAR);
 	if (rc || adata.u.sval < 0) {
 		if (adata.u.sval < 0)
