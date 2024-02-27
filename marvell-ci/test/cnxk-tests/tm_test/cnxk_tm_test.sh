@@ -27,9 +27,19 @@ percentage=95
 PORT0="0002:01:00.4"
 CAP_PORT0="0002:01:00.2"
 CAP_PORT1="0002:01:00.3"
-COREMASK="0xF000"
-CAP_COREMASK="0xFF8"
 EXPECTED_CNT=1000
+
+DTC=$(tr -d '\0' </proc/device-tree/model | awk '{print $2}')
+if [[ $DTC == "CN103XX" ]]; then
+	COREMASK="0x0F"
+	CAP_COREMASK="0xF0"
+	CORES=2
+else
+	COREMASK="0xF000"
+	CAP_COREMASK="0xFF8"
+	CORES=8
+fi
+
 
 if [[ -d /sys/bus/pci/drivers/octeontx2-nicvf ]]; then
 	NICVF="octeontx2-nicvf"
@@ -327,14 +337,14 @@ trap "sig_handler EXIT" EXIT
 echo "Testpmd running with $PORT0, Coremask=$COREMASK"
 testpmd_launch $PRFX \
 	"-c $COREMASK -a $PORT0" \
-	"--nb-cores=3 --rxq=4 --txq=4 --forward-mode=flowgen --txonly-multi-flow --txpkts=256 -i"
+	"--nb-cores=$CORES --rxq=4 --txq=4 --forward-mode=flowgen --txonly-multi-flow --txpkts=256 -i"
 
 testpmd_cmd $PRFX "start"
 
 # Launch capture testpmd
 testpmd_launch $CAP_PRFX \
 	"-c $CAP_COREMASK -a $CAP_PORT0 -a $CAP_PORT1" \
-        "--rxq=8 --txq=8 --nb-cores=8 --rss-udp --no-flush-rx -i"
+        "--rxq=8 --txq=8 --nb-cores=$CORES --rss-udp --no-flush-rx -i"
 
 # Start capturing
 #2Gbps PIR

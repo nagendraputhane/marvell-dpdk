@@ -13,7 +13,14 @@ PRFX_VF="vf_fc-config"
 
 TESTPMD_PORT="0002:02:00.0"
 TESTPMD_VF_PORT="0002:02:00.1"
-TESTPMD_COREMASK="0xfff"
+DTC=$(tr -d '\0' </proc/device-tree/model | awk '{print $2}')
+if [[ $DTC == "CN103XX" ]]; then
+	TESTPMD_COREMASK="0xff"
+	CORES=7
+else
+	TESTPMD_COREMASK="0xfff"
+	CORES=8
+fi
 
 if [ -f $CNXKTESTPATH/../board/oxk-devbind-basic.sh ]
 then
@@ -247,7 +254,7 @@ echo "Starting FC and PFC Test for PF DPDK and VF with kernel"
 echo "Testpmd running with $TESTPMD_PORT, Coremask=$TESTPMD_COREMASK"
 testpmd_launch $PRFX \
 	"-c $TESTPMD_COREMASK -a $TESTPMD_PORT,flow_max_priority=8" \
-	"--no-flush-rx --rxq=8 --txq=8 --nb-cores=8"
+	"--no-flush-rx --rxq=8 --txq=8 --nb-cores=$CORES"
 
 # Part - 1: Validate priority flow control (802.3x)
 # Test case - 1: Validate flow control default configuration. Must be enable

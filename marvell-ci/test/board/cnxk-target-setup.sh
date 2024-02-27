@@ -140,6 +140,8 @@ function setup_devices() {
 	if [[ $CPU == "cn10kb" ]]; then
 		nix_pfs=${ETH_DEV:-$(lspci -d :a063 | tail -1 | awk -e '{ print $1 }')}
 		devs+=" $nix_pfs"
+		inl_pf=${INL_DEV:-$(lspci -d :a0f0 | tail -1 | awk -e '{ print $1 }')}
+		devs+=" $inl_pf"
 	fi
 
 	# Unbind all SSO devices first
