@@ -18,8 +18,10 @@ CLANG_FORMAT_DEF0="clang-format-diff"
 CLANG_FORMAT_DEF1="/usr/share/clang/clang-format-diff.py"
 CLANG_FORMAT_DEF2="clang-format-diff.py"
 CLANG_FORMAT=${CLANG_FORMAT:-}
-# Match only cnxk-common, cn9k and cn10k files.
-FORMAT_REGEX="drivers/.*/cn.*/.*\.[chS]$"
+# Match cnxk-common, cn9k and cn10k files.
+FORMAT_REGEX_CN="drivers/.*/cn.*/.*\.[chS]$"
+# Match Odyssey files.
+FORMAT_REGEX_ODY="drivers/dma/odm/.*\.[chS]$"
 
 status=0
 
@@ -46,7 +48,8 @@ for f in $@; do
 	echo -e "\n$f"
 	printf '=%.0s' $(seq 1 ${#f})
 	echo ""
-	output=$(cat $f | $CLANG_FORMAT -p1 -regex "${FORMAT_REGEX}" $EXTRA_ARGS 2>&1)
+	output=$(cat $f | $CLANG_FORMAT -p1 -regex "${FORMAT_REGEX_CN}" $EXTRA_ARGS 2>&1)
+	output+=$(cat $f | $CLANG_FORMAT -p1 -regex "${FORMAT_REGEX_ODY}" $EXTRA_ARGS 2>&1)
 	# Ignore non-existing file comparisons because it means those files
 	# have been removed in later commits or patch wouldn't apply.
 	output=${output/No such file or directory/}
