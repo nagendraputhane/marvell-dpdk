@@ -103,6 +103,7 @@ test_subdirs_arm = [
         'policer_test',
         'flow_aging',
         'cpt_raw_test',
+        'port_representor',
 ]
 
 test_subdirs_x86 = [
