@@ -44,6 +44,10 @@ EXPERIMENTAL {
 	rte_ml_io_float16_to_float32;
 	rte_ml_io_float32_to_bfloat16;
 	rte_ml_io_bfloat16_to_float32;
+	rte_ml_io_int16_to_int64;
+	rte_ml_io_int16_to_uint64;
+	rte_ml_io_uint16_to_int64;
+	rte_ml_io_uint16_to_uint64;
 	rte_ml_io_dequantize;
 	rte_ml_io_quantize;
 	rte_ml_model_info_get;
