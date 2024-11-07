@@ -38,7 +38,7 @@ jobs:
         key: ${{ steps.get_ref_keys.outputs.ccache }}-${{ github.ref }}
         restore-keys: |
           ${{ steps.get_ref_keys.outputs.ccache }}-refs/heads/main
-    - uses: uraimo/run-on-arch-action@v2.7.2
+    - uses: uraimo/run-on-arch-action@v2.8.1
       name: Build DPDK and generate package
       id: build
       with:
