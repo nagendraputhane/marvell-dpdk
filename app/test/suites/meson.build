@@ -7,7 +7,7 @@ timeout_seconds = 600
 timeout_seconds_fast = 10
 
 test_no_huge_args = ['--no-huge', '-m', '2048']
-has_hugepage = run_command(has_hugepages_cmd, check: true).stdout().strip() != '0'
+has_hugepage = true
 message('hugepage availability: @0@'.format(has_hugepage))
 if not has_hugepage
     if arch_subdir == 'ppc'
