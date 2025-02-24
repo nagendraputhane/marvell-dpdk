@@ -1250,7 +1250,7 @@ roc_nix_inl_dev_qptr_get(uint8_t qid)
 		inl_dev = idev->nix_inl_dev;
 
 	if (!inl_dev) {
-		plt_err("Inline Device could not be detected");
+		plt_nix_dbg("Inline Device could not be detected");
 		return NULL;
 	}
 	if (!inl_dev->attach_cptlf) {
@@ -1293,6 +1293,33 @@ roc_nix_inl_dev_stats_get(struct roc_nix_stats *stats)
 	stats->rx_drop_l3_mcast = INL_NIX_RX_STATS(NIX_STAT_LF_RX_RX_DRP_L3MCAST);
 
 	return 0;
+}
+
+int
+roc_nix_inl_dev_stats_reset(void)
+{
+	struct idev_cfg *idev = idev_get_cfg();
+	struct nix_inl_dev *inl_dev = NULL;
+	struct mbox *mbox;
+	int rc;
+
+	if (idev && idev->nix_inl_dev)
+		inl_dev = idev->nix_inl_dev;
+
+	if (!inl_dev)
+		return -EINVAL;
+
+	mbox = mbox_get((&inl_dev->dev)->mbox);
+
+	if (mbox_alloc_msg_nix_stats_rst(mbox) == NULL) {
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	rc = mbox_process(mbox);
+exit:
+	mbox_put(mbox);
+	return rc;
 }
 
 int

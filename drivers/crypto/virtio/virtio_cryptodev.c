@@ -848,9 +848,8 @@ static void
 virtio_crypto_dev_free_mbufs(struct rte_cryptodev *dev)
 {
 	uint32_t i;
-	struct virtio_crypto_hw *hw = dev->data->dev_private;
 
-	for (i = 0; i < hw->max_dataqueues; i++) {
+	for (i = 0; i < dev->data->nb_queue_pairs; i++) {
 		VIRTIO_CRYPTO_INIT_LOG_DBG("Before freeing dataq[%d] used "
 			"and unused buf", i);
 		VIRTQUEUE_DUMP((struct virtqueue *)
@@ -1373,6 +1372,7 @@ virtio_crypto_sym_configure_session(
 		}
 		break;
 	default:
+		ret = -ENOTSUP;
 		VIRTIO_CRYPTO_SESSION_LOG_ERR(
 			"Unsupported operation chain order parameter");
 		goto error_out;
@@ -1380,7 +1380,7 @@ virtio_crypto_sym_configure_session(
 	return 0;
 
 error_out:
-	return -1;
+	return ret;
 }
 
 static void

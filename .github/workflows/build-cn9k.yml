@@ -4,6 +4,7 @@ on:
   push:
   schedule:
     - cron: "0 0 * * 1"
+    - cron: "0 0 * * 1"
 
 permissions:
   contents: write
@@ -14,7 +15,24 @@ jobs:
   ubuntu-cn9k-build:
     name: ubuntu-cn9k-arm64
     runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04-arm
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Generate cache keys
+        id: get_ref_keys
+        run: |
+          echo 'ccache=ccache-'$(date -u +%Y-m%M) >> $GITHUB_OUTPUT
+      - name: Retrieve ccache cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.get_ref_keys.outputs.ccache }}-${{ github.ref }}
+          restore-keys: |
+            ${{ steps.get_ref_keys.outputs.ccache }}-refs/heads/main
+      - name: Build DPDK and generate package
+        id: build
+        run: |
       - name: Checkout sources
         uses: actions/checkout@v4
       - name: Generate cache keys
@@ -63,6 +81,7 @@ jobs:
           echo "Maintainer: Jerin Jacob (jerinj@marvell.com)" >> DEBIAN/control
           echo "Architecture: arm64" >> DEBIAN/control
           echo "Homepage: https://www.dpdk.org/" >> DEBIAN/control
+          echo "Description: DPDK Library for Marvell Octeon 10" >> DEBIAN/control
           echo "Description: DPDK Library for Marvell Octeon 10" >> DEBIAN/control
           cd -
           mv "${PWD}/install" "${PWD}/dpdk-${PKG_VERSION_NAME}-cn9k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64"
