@@ -83,7 +83,7 @@ jobs:
           #debug package
           DBG_PACKAGE_DIR="dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64-dbg"
           mkdir -p "${DBG_PACKAGE_DIR}/usr/lib/debug"
-          sudo cp /tmp/debug_symbols/install/* "${DBG_PACKAGE_DIR}/usr/lib/debug/"
+          sudo cp -r /tmp/debug_symbols/install/* "${DBG_PACKAGE_DIR}/usr/lib/debug/"
           mkdir -p "${DBG_PACKAGE_DIR}/DEBIAN"
           echo "Package: dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}-dbg" >> "${DBG_PACKAGE_DIR}/DEBIAN/control"
           echo "Version: ${MRVL_PKG_VERSION}" >> "${DBG_PACKAGE_DIR}/DEBIAN/control"
