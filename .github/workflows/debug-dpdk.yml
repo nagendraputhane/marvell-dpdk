@@ -15,25 +15,25 @@ jobs:
     name: ubuntu-cn10k-arm64
     runs-on: ubuntu-24.04-arm
     steps:
-    - name: Checkout sources
-      uses: actions/checkout@v4
-    - name: Generate cache keys
-      id: get_ref_keys
-      run: |
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Generate cache keys
+        id: get_ref_keys
+        run: |
           echo 'ccache=ccache-'$(date -u +%Y-m%M) >> $GITHUB_OUTPUT
-    - name: Retrieve ccache cache
-      uses: actions/cache@v4
-      with:
+      - name: Retrieve ccache cache
+        uses: actions/cache@v4
+        with:
           path: ~/.ccache
           key: ${{ steps.get_ref_keys.outputs.ccache }}-${{ github.ref }}
           restore-keys: |
             ${{ steps.get_ref_keys.outputs.ccache }}-refs/heads/main
-    - name: Build DPDK and generate package
-      id: build
-      run: |
+      - name: Build DPDK and generate package
+        id: build
+        run: |
+          set -x
           mkdir -p "${PWD}/artifacts"
           mkdir -p ~/.ccache
-          # Install dependencies
           sudo apt-get update -q -y
           sudo apt-get install -y build-essential ccache git software-properties-common
           sudo apt-get install -y ccache libarchive-dev libbsd-dev libbpf-dev
@@ -51,50 +51,39 @@ jobs:
             --prefix="${PWD}/install" \
             -Dc_args="-ggdb3"
           ninja install -C build
-          # ------------------------------------------------------------------------------
-          # 2) Extract debug symbols, then strip installed binaries
-          #    We'll place debug symbols under /tmp/debug_symbols/install/...
-          # ------------------------------------------------------------------------------
+          #debug symbols
           find install -type f -exec file {} \; | grep " ELF " | cut -d: -f1 | while read binfile; do
             mkdir -p "/tmp/debug_symbols/$(dirname "$binfile")"
             objcopy --only-keep-debug "$binfile" "/tmp/debug_symbols/${binfile}.dbg"
             strip --strip-debug "$binfile"
           done
-          # Fix .pc prefix lines for DPDK
           sed -i "s/prefix=.*/prefix=/g" "${PWD}/install/lib/aarch64-linux-gnu/pkgconfig/libdpdk.pc"
           sed -i "s/prefix=.*/prefix=/g" "${PWD}/install/lib/aarch64-linux-gnu/pkgconfig/libdpdk-libs.pc"
-          # Read version info
-          PKG_VERSION_NAME=$(cat VERSION | awk -F'.' '{print $1"."$2}')
-          MRVL_PKG_VERSION=$(cat MRVL_VERSION)
-          DISTRO=ubuntu-$(lsb_release -rs)
-          # If we have a Git tag on HEAD, assume it's a release; otherwise, use "-devel".
-          git config --global --add safe.directory "${PWD}"
-          git tag --points-at HEAD > /tmp/tags
-          [ -s /tmp/tags ] && PKG_POSTFIX="" || PKG_POSTFIX="-devel"
+          PKG_VERSION_NAME=`cat VERSION | awk -F'.' '{print $1"."$2}'`
+          MRVL_PKG_VERSION=`cat MRVL_VERSION`
+          DISTRO=ubuntu-`lsb_release -rs`
           mkdir -p "${PWD}/install/debian"
           mkdir -p "${PWD}/install/DEBIAN"
+          git config --global --add safe.directory "${PWD}"
+          git tag --points-at HEAD > /tmp/tags
+          [ -s /tmp/tags ] && PKG_POSTFIX= || PKG_POSTFIX=-devel
           cd "${PWD}/install"
           echo 'Source: dpdk' > debian/control
-          echo "Package: dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}" >> DEBIAN/control
-          echo "Version: ${MRVL_PKG_VERSION}" >> DEBIAN/control
-          echo "Depends: $(dpkg-shlibdeps -O bin/dpdk-testpmd | awk -F'Depends=' '{print $2}'), libbsd-dev, libarchive-dev, libelf-dev, libjansson-dev, libacl1-dev, nettle-dev, liblzma-dev, libzstd-dev, liblz4-dev, libbz2-dev, libxml2-dev, libfdt-dev" >> DEBIAN/control
+          echo 'Package: dpdk-'$PKG_VERSION_NAME'-cn10k'$PKG_POSTFIX >> DEBIAN/control
+          echo 'Version: '$MRVL_PKG_VERSION >> DEBIAN/control
+          echo "Depends: `dpkg-shlibdeps -O bin/dpdk-testpmd | awk -F'Depends=' '{print $2}'`, libbsd-dev, libarchive-dev, libelf-dev, libjansson-dev, libacl1-dev, nettle-dev, liblzma-dev, libzstd-dev, liblz4-dev, libbz2-dev, libxml2-dev, libfdt-dev" >> DEBIAN/control
           echo "Maintainer: Jerin Jacob (jerinj@marvell.com)" >> DEBIAN/control
           echo "Architecture: arm64" >> DEBIAN/control
           echo "Homepage: https://www.dpdk.org/" >> DEBIAN/control
           echo "Description: DPDK Library for Marvell Octeon 10" >> DEBIAN/control
-          cd ..
+          cd -
           mv "${PWD}/install" "${PWD}/dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64"
           dpkg --build "dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64"
-          cp "dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64.deb" "${PWD}/artifacts/."
-          # ------------------------------------------------------------------------------
-          # 4) Build a separate debug package (.dbg files)
-          # ------------------------------------------------------------------------------
+          cp "dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64.deb" ${PWD}/artifacts/.
+          #debug package
           DBG_PACKAGE_DIR="dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}_${MRVL_PKG_VERSION}_arm64-dbg"
           mkdir -p "${DBG_PACKAGE_DIR}/usr/lib/debug"
-          # Copy debug files from /tmp/debug_symbols/install/... to the new package
-          # (preserve directories via --parents)
-          cp --parents -R /tmp/debug_symbols/install/* "${DBG_PACKAGE_DIR}/usr/lib/debug/"
-          # Control file for debug package
+          sudo cp /tmp/debug_symbols/install/* "${DBG_PACKAGE_DIR}/usr/lib/debug/"
           mkdir -p "${DBG_PACKAGE_DIR}/DEBIAN"
           echo "Package: dpdk-${PKG_VERSION_NAME}-cn10k${PKG_POSTFIX}-dbg" >> "${DBG_PACKAGE_DIR}/DEBIAN/control"
           echo "Version: ${MRVL_PKG_VERSION}" >> "${DBG_PACKAGE_DIR}/DEBIAN/control"
@@ -105,16 +94,13 @@ jobs:
           echo "Description: DPDK debug symbols for Marvell Octeon 10" >> "${DBG_PACKAGE_DIR}/DEBIAN/control"
           dpkg --build "${DBG_PACKAGE_DIR}"
           cp "${DBG_PACKAGE_DIR}.deb" "${PWD}/artifacts/."
-          # ------------------------------------------------------------------------------
-          # 5) Export environment variables for subsequent steps
-          # ------------------------------------------------------------------------------
-          echo "PKG_VERSION_NAME=${PKG_VERSION_NAME}" >> "${PWD}/artifacts/env"
-          echo "MRVL_PKG_VERSION=${MRVL_PKG_VERSION}" >> "${PWD}/artifacts/env"
-          echo "PKG_POSTFIX=${PKG_POSTFIX}" >> "${PWD}/artifacts/env"
-          echo "DISTRO=${DISTRO}" >> "${PWD}/artifacts/env"
-    - name: Export version name
-      id: artifacts
-      run: |
+          echo "PKG_VERSION_NAME=${PKG_VERSION_NAME}" >> ${PWD}/artifacts/env
+          echo "MRVL_PKG_VERSION=${MRVL_PKG_VERSION}" >> ${PWD}/artifacts/env
+          echo "PKG_POSTFIX=${PKG_POSTFIX}" >> ${PWD}/artifacts/env
+          echo "DISTRO=${DISTRO}" >> ${PWD}/artifacts/env
+      - name: Export version name
+        id: artifacts
+        run: |
           source "${PWD}/artifacts/env"
           echo $PKG_VERSION_NAME
           echo "PKG_VERSION_NAME=${PKG_VERSION_NAME}" >> "$GITHUB_OUTPUT"
@@ -125,18 +111,24 @@ jobs:
           [[ "$PKG_POSTFIX" == "-devel" ]] && TAG=devel || TAG=${MRVL_PKG_VERSION}
           echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
           echo "DISTRO=${DISTRO}" >> "$GITHUB_OUTPUT"
-    - name: Delete existing release
-      uses: liudonghua123/delete-release-action@v1
-      if: ${{ github.event_name == 'push' }}
-      env:
+      - name: Upload debian package as artifact
+        uses: actions/upload-artifact@v4.3.1
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: dpdk-${{ steps.artifacts.outputs.PKG_VERSION_NAME }}-cn10k${{ steps.artifacts.outputs.PKG_POSTFIX }}_${{ steps.artifacts.outputs.MRVL_PKG_VERSION }}_arm64.deb
+          path: ${{ github.workspace }}/artifacts/dpdk-${{ steps.artifacts.outputs.PKG_VERSION_NAME }}-cn10k${{ steps.artifacts.outputs.PKG_POSTFIX }}_${{ steps.artifacts.outputs.MRVL_PKG_VERSION }}_arm64.deb
+      - name: Delete existing release
+        uses: liudonghua123/delete-release-action@v1
+        if: ${{ github.event_name == 'push' }}
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
+        with:
           release_name: dpdk-cn10k-${{ steps.artifacts.outputs.PKG_VERSION_NAME }}_${{ steps.artifacts.outputs.MRVL_PKG_VERSION }}-${{ steps.artifacts.outputs.DISTRO }}-${{ steps.artifacts.outputs.TAG }}
           suppress_errors: true
-    - name: Release DPDK cn10k package
-      uses: softprops/action-gh-release@v2.0.4
-      if: ${{ github.event_name == 'push' }}
-      with:
+      - name: Release DPDK cn10k package
+        uses: softprops/action-gh-release@v2.0.4
+        if: ${{ github.event_name == 'push' }}
+        with:
           tag_name: dpdk-cn10k-${{ steps.artifacts.outputs.PKG_VERSION_NAME }}_${{ steps.artifacts.outputs.MRVL_PKG_VERSION }}-${{ steps.artifacts.outputs.DISTRO }}-${{ steps.artifacts.outputs.TAG }}
           files: |
             ${{ github.workspace }}/artifacts/dpdk-${{ steps.artifacts.outputs.PKG_VERSION_NAME }}-cn10k${{ steps.artifacts.outputs.PKG_POSTFIX }}_${{ steps.artifacts.outputs.MRVL_PKG_VERSION }}_arm64.deb
