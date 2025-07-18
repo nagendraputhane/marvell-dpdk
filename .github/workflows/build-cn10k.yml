@@ -20,9 +20,9 @@ jobs:
       - name: Generate cache keys
         id: get_ref_keys
         run: |
-          echo 'ccache=ccache-'$(date -u +%Y-m%M) >> $GITHUB_OUTPUT
+          echo 'ccache=ccache-'$(date -u +%Y-%m) >> $GITHUB_OUTPUT
       - name: Retrieve ccache cache
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: ~/.ccache
           key: ${{ steps.get_ref_keys.outputs.ccache }}-${{ github.ref }}
@@ -32,7 +32,6 @@ jobs:
         id: build
         run: |
           mkdir -p "${PWD}/artifacts"
-          mkdir -p ~/.ccache
           sudo apt-get update -q -y
           sudo apt-get install -y build-essential ccache git software-properties-common
           sudo apt-get install -y ccache libarchive-dev libbsd-dev libbpf-dev
@@ -41,7 +40,6 @@ jobs:
           sudo apt-get install -y python3-pyelftools python3-setuptools python3-wheel zlib1g-dev meson gcc
           sudo apt-get install -y gcc-14
           export CC='ccache gcc-14'
-          echo "cache_dir = ~/.ccache" > ~/.ccache/ccache.conf
           ccache -p
           meson build -Dexamples=all -Denable_drivers="*/cnxk,net/ring,net/tap" -Dplatform=cn10k --prefix="${PWD}/install"
           ninja install -C build
