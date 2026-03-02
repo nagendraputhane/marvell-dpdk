@@ -44,7 +44,6 @@ jobs:
         run: |
           set -x
           mkdir -p "${PWD}/artifacts"
-          git fetch --tags --quiet
 
           EVENT="${{ github.event_name }}"
 
