@@ -129,6 +129,9 @@ jobs:
           cp -av "${TVM_PREFIX}/lib/"libtvm_runtime.so* "${PWD}/install/lib/aarch64-linux-gnu/"
           sed -i "s/prefix=.*/prefix=/g" "${PWD}/install/lib/aarch64-linux-gnu/pkgconfig/libdpdk.pc"
           sed -i "s/prefix=.*/prefix=/g" "${PWD}/install/lib/aarch64-linux-gnu/pkgconfig/libdpdk-libs.pc"
+          for pc in libdpdk.pc libdpdk-libs.pc; do
+            sed -i 's/ -ldmlc//g' "${PWD}/install/lib/aarch64-linux-gnu/pkgconfig/${pc}"
+          done
           PKG_VERSION_NAME=`cat VERSION | awk -F'.' '{print $1"."$2}'`
           MRVL_PKG_VERSION=`cat MRVL_VERSION`
           DISTRO=ubuntu-`lsb_release -rs`
